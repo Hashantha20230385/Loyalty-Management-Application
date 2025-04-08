@@ -1,28 +1,91 @@
-//creating the required tables in PostgreSQL
-CREATE TABLE customers (
-    id SERIAL PRIMARY KEY,
-    first_name VARCHAR(50),
-    last_name VARCHAR(50),
-    email VARCHAR(100) UNIQUE,
-    mobile VARCHAR(15),
-    address TEXT,
-    identification_no VARCHAR(50) UNIQUE,
-    points INT DEFAULT 0
+//creating the required tables in MySQL
+
+//1. User Table
+CREATE TABLE "User" (
+    userId SERIAL PRIMARY KEY,
+    userName VARCHAR(100) NOT NULL,
+    password VARCHAR(255) NOT NULL,
+    fName VARCHAR(100),
+    lName VARCHAR(100),
+    email VARCHAR(150) UNIQUE NOT NULL,
+    role VARCHAR(100),
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-CREATE TABLE points_structure (
-    id SERIAL PRIMARY KEY,
-    spend_amount DECIMAL(10,2),
-    points_awarded INT
+-- 2. Customer Table
+CREATE TABLE Customer (
+    customerId SERIAL PRIMARY KEY,
+    fname VARCHAR(150),
+    lname VARCHAR(150),
+    address VARCHAR(250),
+    email VARCHAR(150) UNIQUE,
+    mobile VARCHAR(20),
+    joinedDate DATE DEFAULT CURRENT_DATE,
+    EarnedPoints INT DEFAULT 0,
+    availablePoints INT DEFAULT 0,
+    redeemedPoints INT DEFAULT 0
 );
 
-INSERT INTO points_structure (spend_amount, points_awarded) VALUES (1.0, 1);
-
-CREATE TABLE tiers (
-    id SERIAL PRIMARY KEY,
-    name VARCHAR(50) UNIQUE,
-    threshold INT,
-    discount DECIMAL(5,2)
+-- 3. Loyalty Program Table
+CREATE TABLE LoyaltyProgram (
+    programId SERIAL PRIMARY KEY,
+    pointsStructure INT NOT NULL,  -- E.g., points per LKR spent
+    tier VARCHAR(50),
+    rewardsSetting VARCHAR(100),
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
-INSERT INTO tiers (name, threshold, discount) VALUES ('Silver', 200, 5), ('Gold', 500, 10);
+-- 4. Rewards Table
+CREATE TABLE Rewards (
+    rewardId SERIAL PRIMARY KEY,
+    rewardName VARCHAR(150),
+    pointsRequired INT NOT NULL,
+    discount INTEGER  -- Discount percentage or fixed value
+);
+
+-- 5. Customer Segment Table
+CREATE TABLE CustomerSegment (
+    segmentId SERIAL PRIMARY KEY,
+    segmentName VARCHAR(100),
+    filterSetting TEXT,
+    customerList TEXT  
+);
+
+-- 6. Product Table
+CREATE TABLE Product (
+    productId SERIAL PRIMARY KEY,
+    productName VARCHAR(150),
+    category VARCHAR(100),
+    sellingPrice DECIMAL(10, 2),
+    discount INTEGER DEFAULT 0
+);
+
+-- 7. Transaction Table
+CREATE TABLE Transaction (
+    invoiceId SERIAL PRIMARY KEY,
+    customerId INT REFERENCES Customer(customerId) ON DELETE CASCADE,
+    totalAmount DECIMAL(10, 2),
+    pointsEarned INT,
+    pointsRedeemed INT,
+    invoiceDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- 8. ProductPurchased Table (Many-to-many between Product and Transaction)
+CREATE TABLE ProductPurchased (
+    productId INT REFERENCES Product(productId) ON DELETE CASCADE,
+    invoiceId INT REFERENCES Transaction(invoiceId) ON DELETE CASCADE,
+    quantity INT,
+    discount INT,
+    amount DECIMAL(10, 2),
+    PRIMARY KEY (productId, invoiceId)
+);
+
+-- 9. Loyalty History Table (tracks earning/redemption activities)
+CREATE TABLE LoyaltyHistory (
+    loyaltyId SERIAL PRIMARY KEY,
+    customerId INT REFERENCES Customer(customerId) ON DELETE CASCADE,
+    invoiceId INT REFERENCES Transaction(invoiceId),
+    pointsEarned INT,
+    pointsRedeemed INT,
+    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
