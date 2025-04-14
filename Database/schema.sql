@@ -1,91 +1,128 @@
-//creating the required tables in MySQL
+-- Loyalty Management System Database Schema
 
-//1. User Table
-CREATE TABLE "User" (
-    userId SERIAL PRIMARY KEY,
-    userName VARCHAR(100) NOT NULL,
-    password VARCHAR(255) NOT NULL,
-    fName VARCHAR(100),
-    lName VARCHAR(100),
-    email VARCHAR(150) UNIQUE NOT NULL,
-    role VARCHAR(100),
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Create the database
+CREATE DATABASE IF NOT EXISTS loyalty_management;
+USE loyalty_management;
+
+-- Create customers table
+CREATE TABLE IF NOT EXISTS customers (
+  customer_id INT AUTO_INCREMENT PRIMARY KEY,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  mobile VARCHAR(15) UNIQUE NOT NULL,
+  address TEXT NOT NULL,
+  identification_no VARCHAR(50) UNIQUE NOT NULL,
+  earned_points INT DEFAULT 0,
+  redeemed_points INT DEFAULT 0,
+  available_points INT DEFAULT 0,
+  tier VARCHAR(20) DEFAULT 'Purple',
+  join_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 2. Customer Table
-CREATE TABLE Customer (
-    customerId SERIAL PRIMARY KEY,
-    fname VARCHAR(150),
-    lname VARCHAR(150),
-    address VARCHAR(250),
-    email VARCHAR(150) UNIQUE,
-    mobile VARCHAR(20),
-    joinedDate DATE DEFAULT CURRENT_DATE,
-    EarnedPoints INT DEFAULT 0,
-    availablePoints INT DEFAULT 0,
-    redeemedPoints INT DEFAULT 0
+-- Create users table
+CREATE TABLE IF NOT EXISTS users (
+  user_id INT AUTO_INCREMENT PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  first_name VARCHAR(50) NOT NULL,
+  last_name VARCHAR(50) NOT NULL,
+  email VARCHAR(100) UNIQUE NOT NULL,
+  department VARCHAR(50),
+  role VARCHAR(50) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- 3. Loyalty Program Table
-CREATE TABLE LoyaltyProgram (
-    programId SERIAL PRIMARY KEY,
-    pointsStructure INT NOT NULL,  -- E.g., points per LKR spent
-    tier VARCHAR(50),
-    rewardsSetting VARCHAR(100),
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Create products table
+CREATE TABLE IF NOT EXISTS products (
+  product_id INT AUTO_INCREMENT PRIMARY KEY,
+  name VARCHAR(100) NOT NULL,
+  category VARCHAR(50) NOT NULL,
+  selling_price DECIMAL(10, 2) NOT NULL,
+  discount DECIMAL(5, 2) DEFAULT 0.00
 );
 
--- 4. Rewards Table
-CREATE TABLE Rewards (
-    rewardId SERIAL PRIMARY KEY,
-    rewardName VARCHAR(150),
-    pointsRequired INT NOT NULL,
-    discount INTEGER  -- Discount percentage or fixed value
+-- Create transactions table
+CREATE TABLE IF NOT EXISTS transactions (
+  invoice_id VARCHAR(50) PRIMARY KEY,
+  customer_id INT NOT NULL,
+  total_amount DECIMAL(10, 2) NOT NULL,
+  points_earned INT DEFAULT 0,
+  points_redeemed INT DEFAULT 0,
+  invoice_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(customer_id)
 );
 
--- 5. Customer Segment Table
-CREATE TABLE CustomerSegment (
-    segmentId SERIAL PRIMARY KEY,
-    segmentName VARCHAR(100),
-    filterSetting TEXT,
-    customerList TEXT  
+-- Create product_purchased table
+CREATE TABLE IF NOT EXISTS product_purchased (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  invoice_id VARCHAR(50) NOT NULL,
+  product_id INT NOT NULL,
+  product_name VARCHAR(100) NOT NULL,
+  quantity INT NOT NULL,
+  discount DECIMAL(5, 2) DEFAULT 0.00,
+  amount DECIMAL(10, 2) NOT NULL,
+  FOREIGN KEY (invoice_id) REFERENCES transactions(invoice_id),
+  FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
 
--- 6. Product Table
-CREATE TABLE Product (
-    productId SERIAL PRIMARY KEY,
-    productName VARCHAR(150),
-    category VARCHAR(100),
-    sellingPrice DECIMAL(10, 2),
-    discount INTEGER DEFAULT 0
+-- Create loyalty_history table
+CREATE TABLE IF NOT EXISTS loyalty_history (
+  loyalty_id INT AUTO_INCREMENT PRIMARY KEY,
+  customer_id INT NOT NULL,
+  invoice_id VARCHAR(50),
+  status ENUM('earned', 'redeemed', 'cancelled', 'expired') NOT NULL,
+  points INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+  FOREIGN KEY (invoice_id) REFERENCES transactions(invoice_id)
 );
 
--- 7. Transaction Table
-CREATE TABLE Transaction (
-    invoiceId SERIAL PRIMARY KEY,
-    customerId INT REFERENCES Customer(customerId) ON DELETE CASCADE,
-    totalAmount DECIMAL(10, 2),
-    pointsEarned INT,
-    pointsRedeemed INT,
-    invoiceDate TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Create loyalty_tiers table
+CREATE TABLE IF NOT EXISTS loyalty_tiers (
+  tier_id INT AUTO_INCREMENT PRIMARY KEY,
+  tier_name VARCHAR(50) NOT NULL,
+  threshold INT NOT NULL,
+  discount DECIMAL(5, 2) DEFAULT 0.00,
+  description TEXT
 );
 
--- 8. ProductPurchased Table (Many-to-many between Product and Transaction)
-CREATE TABLE ProductPurchased (
-    productId INT REFERENCES Product(productId) ON DELETE CASCADE,
-    invoiceId INT REFERENCES Transaction(invoiceId) ON DELETE CASCADE,
-    quantity INT,
-    discount INT,
-    amount DECIMAL(10, 2),
-    PRIMARY KEY (productId, invoiceId)
+-- Create points_structure table
+CREATE TABLE IF NOT EXISTS points_structure (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  spend_amount DECIMAL(10, 2) NOT NULL,
+  points_awarded INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
--- 9. Loyalty History Table (tracks earning/redemption activities)
-CREATE TABLE LoyaltyHistory (
-    loyaltyId SERIAL PRIMARY KEY,
-    customerId INT REFERENCES Customer(customerId) ON DELETE CASCADE,
-    invoiceId INT REFERENCES Transaction(invoiceId),
-    pointsEarned INT,
-    pointsRedeemed INT,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+-- Create rewards table
+CREATE TABLE IF NOT EXISTS rewards (
+  reward_id INT AUTO_INCREMENT PRIMARY KEY,
+  reward_name VARCHAR(100) NOT NULL,
+  points_required INT NOT NULL,
+  discount_value DECIMAL(5, 2),
+  description TEXT,
+  active BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create customer_segments table
+CREATE TABLE IF NOT EXISTS customer_segments (
+  segment_id INT AUTO_INCREMENT PRIMARY KEY,
+  segment_name VARCHAR(100) NOT NULL,
+  criteria JSON NOT NULL,
+  created_by INT NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (created_by) REFERENCES users(user_id)
+);
+
+-- Create segment_customers junction table
+CREATE TABLE IF NOT EXISTS segment_customers (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  segment_id INT NOT NULL,
+  customer_id INT NOT NULL,
+  FOREIGN KEY (segment_id) REFERENCES customer_segments(segment_id),
+  FOREIGN KEY (customer_id) REFERENCES customers(customer_id),
+  UNIQUE (segment_id, customer_id)
 );
