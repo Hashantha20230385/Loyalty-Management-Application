@@ -1,26 +1,45 @@
-//Main Server File
-require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
-const bodyParser = require('body-parser');
-const customerRoutes = require('./routes/customers');
-const segmentationRoutes = require('./routes/segmentation');
-const pointsRoutes = require('./routes/points');
-const tierRoutes = require('./routes/tiers');
+const { testConnection } = require('./config/db');
+require('dotenv').config();
 
+// Import routes
+const authRoutes = require('./routes/authRoutes');
+const customerRoutes = require('./routes/customerRoutes');
+const loyaltyRoutes = require('./routes/loyaltyRoutes');
+const segmentRoutes = require('./routes/segmentRoutes');
+const transactionRoutes = require('./routes/transactionRoutes');
+
+// Initialize express app
 const app = express();
+
+// Test database connection
+testConnection();
 
 // Middleware
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// Routes
-app.use('/customers', customerRoutes);
-app.use('/segmentation', segmentationRoutes);
-app.use('/points', pointsRoutes);
-app.use('/tiers', tierRoutes);
+// Route middleware
+app.use('/api/auth', authRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/loyalty', loyaltyRoutes);
+app.use('/api/segments', segmentRoutes);
+app.use('/api/transactions', transactionRoutes);
 
-const PORT = process.env.PORT || 3000;
+// Root route
+app.get('/', (req, res) => {
+  res.send('Loyalty Management API is running');
+});
+
+// Handle 404 errors
+app.use((req, res) => {
+  res.status(404).json({ message: 'Route not found' });
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
