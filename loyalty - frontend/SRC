@@ -1,0 +1,3 @@
+npx create-react-app loyalty-admin
+cd loyalty-admin
+npm install react-router-dom axios @mui/material @mui/icons-material
